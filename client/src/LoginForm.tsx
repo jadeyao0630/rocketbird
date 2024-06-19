@@ -189,34 +189,109 @@ const LoginForm: React.FC = () => {
       var _response_recv:Array<any>=[]
       var salesA=0
       var receivedAmount=0
+      var queries:Array<string>=[]
       list.forEach(async(item:MyObject) => {
+        var _key:Array<string>=[]
+        var _source_key:Array<string>=[]
+        var _val:Array<string>=[]
+        var _key_val:Array<string>=[]
+        var _id_p=0;
+        var _key_p:Array<string>=[]
+        var _source_key_p:Array<string>=[]
+        var _val_p:Array<string>=[]
+        var _key_val_p:Array<string>=[]
+        var _id_m=0;
+        var _key_m:Array<string>=[]
+        var _source_key_m:Array<string>=[]
+        var _val_m:Array<string>=[]
+        var _key_val_m:Array<string>=[]
+        Object.keys(item).forEach(key=>{
+            if(key==="pay_detail"){
+                if(item[key]!=="[]"){
+                    const pd=item[key] as [];
+                    pd.forEach(_pd=>{
+                        _key_p.push("id");
+                        _source_key_p.push("Source.id");
+                        _val_p.push(_id_p.toString())
+                        _key_val_p.push(`Target.id = Source.id`)
+                        _id_p++;
+                        _key_p.push("flow_sn");
+                        _source_key_p.push("Source.flow_sn");
+                        _val_p.push("'"+item["flow_sn"]+"'")
+                        _key_val_p.push(`Target.flow_sn = Source.flow_sn`)
+                        Object.keys(_pd).forEach(_key=>{
+                            _key_p.push(_key);
+                            _source_key_p.push("Source."+_key);
+                            _val_p.push(_pd[_key]===null?"NULL":"N'"+_pd[_key]+"'")
+                            _key_val_p.push(`Target.${_key} = Source.${_key}`)
+                        });
+                    })
+                }
+            }else if(key==="marketers_detail"){
+                console.log(item[key]);
+                if(item[key]!=="[]"){
+                    const pd=item[key] as [];
+                    pd.forEach(_pd=>{
+                        _key_m.push("id");
+                        _source_key_m.push("Source.id");
+                        _val_m.push(_id_m.toString())
+                        _key_val_m.push(`Target.id = Source.id`)
+                        _id_m++;
+                        _key_m.push("flow_sn");
+                        _source_key_m.push("Source.flow_sn");
+                        _val_m.push("'"+item["flow_sn"]+"'")
+                        _key_val_m.push(`Target.flow_sn = Source.flow_sn`)
+                        Object.keys(_pd).forEach(_key=>{
+                            _key_m.push(_key==="percent"?"["+_key+"]":_key);
+                            _source_key_m.push("Source.["+_key+"]");
+                            _val_m.push(_pd[_key]===null?"NULL":"N'"+_pd[_key]+"'")
+                            _key_val_m.push(`Target.[${_key}] = Source.[${_key}]`)
+                        });
+                    })
+                }
+            }
+            else{
+                _key.push(key);
+                _source_key.push("Source."+key);
+                _val.push(item[key]===null?"NULL":"N'"+item[key]+"'")
+                _key_val.push(`Target.${key} = Source.${key}`)
+            }
+            
+        })
+        var query=`MERGE INTO FinancialFlow AS Target
+        USING (VALUES (${_val.join()})) AS Source (${_key.join()})
+        ON Target.flow_sn = Source.flow_sn
+        WHEN MATCHED THEN
+            UPDATE SET ${_key_val.join()}
+        WHEN NOT MATCHED THEN
+            INSERT (${_key.join()})
+            VALUES (${_source_key.join()});
+        MERGE INTO pay_detail AS Target
+        USING (VALUES (${_val_p.join()})) AS Source (${_key_p.join()})
+        ON Target.flow_sn = Source.flow_sn AND Target.id = Source.id
+        WHEN MATCHED THEN
+            UPDATE SET ${_key_val_p.join()}
+        WHEN NOT MATCHED THEN
+            INSERT (${_key_p.join()})
+            VALUES (${_source_key_p.join()});
+        ${_val_m.length>0?`MERGE INTO marketers_detail AS Target
+        USING (VALUES (${_val_m.join()})) AS Source (${_key_m.join()})
+        ON Target.flow_sn = Source.flow_sn AND Target.id = Source.id
+        WHEN MATCHED THEN
+            UPDATE SET ${_key_val_m.join()}
+        WHEN NOT MATCHED THEN
+            INSERT (${_key_m.join()})
+            VALUES (${_source_key_m.join()});`:""}`
+        queries.push(query)
+        //console.log(query)
+        
+        
         var matched=(response_recv.data.results.list as []).find(item_recv=>{
             var included=(item_recv['flow_sn'] as string).split(',').includes(item['flow_sn'])
             if(included && !_response_recv.includes(item_recv)) _response_recv.push(item_recv)
             return included
         })
-        var _key:Array<string>=[]
-        var _val:Array<string>=[]
-        var _key_val:Array<string>=[]
-        Object.keys(item).forEach(key=>{
-            if(key!=="pay_detail" && key!=="marketers_detail"){
-                _key.push(key);
-                _val.push("'"+item[key]+"'")
-                _key_val.push(`${key} = '${item[key]}'`)
-            }
-            
-        })
-        var query=`MERGE INTO FinancialFlow AS Target
-            USING (VALUES (${_val.join()})) AS Source (${_key.join()})
-            ON Target.flow_sn = Source.flow_sn
-            WHEN MATCHED THEN
-                UPDATE SET ${_key_val.join()}
-            WHEN NOT MATCHED THEN
-                INSERT (${_val.join()}))
-                VALUES (${_key.join()});`
-        console.log(query)
-        const response_upsert_ = await axios.post('http://localhost:3001/api/saveData', {type:"mssql",query:query}, { withCredentials: true });
-        console.log(response_upsert_);
+        
         item['paid_amount']= ''
         item['paid_time']=''
         item['pay_type_name']=''
@@ -261,6 +336,11 @@ const LoginForm: React.FC = () => {
            
         }
       });
+      (response_recv.data.results.list as []).forEach(recved=>{
+        Object.keys(recved).forEach(key=>{
+
+        });
+      })
       _response_recv=(response_recv.data.results.list as []).filter((item_recv)=>{
         return !_response_recv.includes(item_recv)
       })
@@ -307,6 +387,12 @@ const LoginForm: React.FC = () => {
         console.log('This message is displayed every 2 seconds',_response_recv.length,count.length);
         if(count.length===_response_recv.length){
             clearInterval(intervalId);
+            //console.log(queries.join(""));
+            queries.forEach(async(query)=>{
+                const response_upsert_ = await axios.post('http://localhost:3001/saveData', {type:"mssql",query:query}, { withCredentials: true });
+                console.log(response_upsert_);
+            })
+            
             setResults(list.sort((a:MyObject, b:MyObject) => {
                 const dateA = new Date(a.deal_time).getTime();
                 const dateB = new Date(b.deal_time).getTime();
@@ -458,6 +544,36 @@ export default LoginForm;
 // bus_name	"健豪运动"
 // is_real_user	false
 
+// IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='ReceiveLogList' AND xtype='U')
+// BEGIN
+//     CREATE TABLE ReceiveLogList (
+//         serial_number NVARCHAR(255) PRIMARY KEY,
+//         create_time DATETIME,
+//         amount MONEY,
+//         pay_type INT,
+//         id INT,
+//         type INT,
+//         is_online BIT,
+//         username NVARCHAR(1000),
+//         user_id INT,
+//         order_no NVARCHAR(1000),
+//         pay_type_name NVARCHAR(255),
+//         bus_id INT,
+//         bus_name NVARCHAR(255),
+//         is_real_user BIT,
+//     )
+// END
+// IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='ReceiveLinked' AND xtype='U')
+// BEGIN
+//     CREATE TABLE ReceiveLinked (
+//         serial_number NVARCHAR(255),
+//         id INT,
+//         deal_time DATETIME,
+//         flow_sn NVARCHAR(1000),
+//         PRIMARY KEY (serial_number, id)
+//     )
+// END
+
 //https://wx.rocketbird.cn/Web/statistics/getFinancialFlowNew
 
 // bus_id	"11536"
@@ -476,19 +592,19 @@ export default LoginForm;
 //     CREATE TABLE FinancialFlow (
 //         bus_id INT,
 //         flow_type NVARCHAR(255),
-//         flow_sn INT PRIMARY KEY,
+//         flow_sn NVARCHAR(255) PRIMARY KEY,
 //         remark NVARCHAR(1000),
-//         serv_id INT,
+//         serv_id NVARCHAR(255),
 //         operate_type NVARCHAR(255),
 //         amount MONEY,
 //         pre_payment MONEY,
 //         income_amount MONEY,
 //         pay_type_amount MONEY,
 //         pay_type_id INT,
-//         debt_bus_id INT,
-//         ci_bus_id INT,
-//         ci_id INT,
-//         card_id INT,
+//         debt_bus_id VARCHAR(50) NULL,
+//         ci_bus_id VARCHAR(50) NULL,
+//         ci_id VARCHAR(50) NULL,
+//         card_id VARCHAR(50) NULL,
 //         ci_name NVARCHAR(255),
 //         card_type_id INT,
 //         id INT,
@@ -544,7 +660,7 @@ export default LoginForm;
 // IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='pay_detail' AND xtype='U')
 // BEGIN
 //     CREATE TABLE pay_detail (
-//         flow_sn INT NOT NULL,
+//         flow_sn NVARCHAR(255) NOT NULL,
 //         id INT NOT NULL,
 //         pay_type NVARCHAR(255),
 //         amount MONEY,
@@ -555,7 +671,7 @@ export default LoginForm;
 // IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='marketers_detail' AND xtype='U')
 // BEGIN
 //     CREATE TABLE marketers_detail (
-//         flow_sn INT NOT NULL,
+//         flow_sn NVARCHAR(255) NOT NULL,
 //         id INT NOT NULL,
 //         name NVARCHAR(255),
 //         role NVARCHAR(255),
