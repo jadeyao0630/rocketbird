@@ -17,6 +17,7 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 import DbService from './dbService';
 const db= DbService.getDbServiceInstance();
+
 app.post('/getData',async(request,response) => {
     //console.log('request----',request);
     const {type="mssql",query="select * from p_Room"} = request.body;

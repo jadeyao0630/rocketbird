@@ -189,12 +189,34 @@ const LoginForm: React.FC = () => {
       var _response_recv:Array<any>=[]
       var salesA=0
       var receivedAmount=0
-      list.forEach((item:MyObject) => {
+      list.forEach(async(item:MyObject) => {
         var matched=(response_recv.data.results.list as []).find(item_recv=>{
             var included=(item_recv['flow_sn'] as string).split(',').includes(item['flow_sn'])
             if(included && !_response_recv.includes(item_recv)) _response_recv.push(item_recv)
             return included
         })
+        var _key:Array<string>=[]
+        var _val:Array<string>=[]
+        var _key_val:Array<string>=[]
+        Object.keys(item).forEach(key=>{
+            if(key!=="pay_detail" && key!=="marketers_detail"){
+                _key.push(key);
+                _val.push("'"+item[key]+"'")
+                _key_val.push(`${key} = '${item[key]}'`)
+            }
+            
+        })
+        var query=`MERGE INTO FinancialFlow AS Target
+            USING (VALUES (${_val.join()})) AS Source (${_key.join()})
+            ON Target.flow_sn = Source.flow_sn
+            WHEN MATCHED THEN
+                UPDATE SET ${_key_val.join()}
+            WHEN NOT MATCHED THEN
+                INSERT (${_val.join()}))
+                VALUES (${_key.join()});`
+        console.log(query)
+        const response_upsert_ = await axios.post('http://localhost:3001/api/saveData', {type:"mssql",query:query}, { withCredentials: true });
+        console.log(response_upsert_);
         item['paid_amount']= ''
         item['paid_time']=''
         item['pay_type_name']=''
@@ -516,6 +538,30 @@ export default LoginForm;
 //         flow_category NVARCHAR(255),
 //         is_real_user BIT,
 //         bus_name NVARCHAR(255),
+//     )
+// END
+
+// IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='pay_detail' AND xtype='U')
+// BEGIN
+//     CREATE TABLE pay_detail (
+//         flow_sn INT NOT NULL,
+//         id INT NOT NULL,
+//         pay_type NVARCHAR(255),
+//         amount MONEY,
+//         pay_type_id INT,
+//         PRIMARY KEY (flow_sn, id)
+//     )
+// END
+// IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='marketers_detail' AND xtype='U')
+// BEGIN
+//     CREATE TABLE marketers_detail (
+//         flow_sn INT NOT NULL,
+//         id INT NOT NULL,
+//         name NVARCHAR(255),
+//         role NVARCHAR(255),
+//         "percent" NVARCHAR(255),
+//         amount MONEY,
+//         PRIMARY KEY (flow_sn, id)
 //     )
 // END
 
