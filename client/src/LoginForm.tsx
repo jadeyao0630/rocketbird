@@ -404,3 +404,154 @@ const LoginForm: React.FC = () => {
 };
 
 export default LoginForm;
+
+
+//https://wx.rocketbird.cn/Web/statistics/ReceiveLogList
+	
+// search	""
+// begin_date	"2024-06-18"
+// end_date	"2024-06-18"
+// page_no	"1"
+// page_size	"10"
+// type	""
+// pay_type	""
+// pay_status	""
+// related	""
+// bus_id	"11536"
+
+// serial_number	"2024061821365400001"
+// create_time	"2024-06-18 21:36"
+// deal_time	[ "2024-06-18", "2024-06-18", "2024-06-18" ]
+// amount	"+30.00"
+// pay_type	"19"
+// id	"16142576"
+// type	"0"
+// is_online	"0"
+// username	"散客"
+// user_id	"-1"
+// order_no	""
+// flow_sn	"24061822O00065,24061822O00066,24061822O00067"
+// pay_type_name	"转账"
+// bus_id	"11536"
+// bus_name	"健豪运动"
+// is_real_user	false
+
+//https://wx.rocketbird.cn/Web/statistics/getFinancialFlowNew
+
+// bus_id	"11536"
+// begin_date	"2024-06-18"
+// end_date	"2024-06-18"
+// flow_type	""
+// pay_type	""
+// search	""
+// sale_id	""
+// operate_type	""
+// page_size	"10"
+// page_no	"1"
+
+// IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='FinancialFlow' AND xtype='U')
+// BEGIN
+//     CREATE TABLE FinancialFlow (
+//         bus_id INT,
+//         flow_type NVARCHAR(255),
+//         flow_sn INT PRIMARY KEY,
+//         remark NVARCHAR(1000),
+//         serv_id INT,
+//         operate_type NVARCHAR(255),
+//         amount MONEY,
+//         pre_payment MONEY,
+//         income_amount MONEY,
+//         pay_type_amount MONEY,
+//         pay_type_id INT,
+//         debt_bus_id INT,
+//         ci_bus_id INT,
+//         ci_id INT,
+//         card_id INT,
+//         ci_name NVARCHAR(255),
+//         card_type_id INT,
+//         id INT,
+//         serv_type INT,
+//         deal_time DATETIME,
+//         user_id INT,
+//         username NVARCHAR(255),
+//         description NVARCHAR(1000),
+//         card_name NVARCHAR(1000),
+//         custom_order_sn NVARCHAR(255),
+//         lr_id INT,
+//         flow_category NVARCHAR(255),
+//         is_real_user BIT,
+//         bus_name NVARCHAR(255),
+//     )
+// END
+
+// IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='pay_detail' AND xtype='U')
+// BEGIN
+//     CREATE TABLE pay_detail (
+//         bus_id INT,
+//         flow_type NVARCHAR(255),
+//         flow_sn INT PRIMARY KEY,
+//         remark NVARCHAR(1000),
+//         serv_id INT,
+//         operate_type NVARCHAR(255),
+//         amount MONEY,
+//         pre_payment MONEY,
+//         income_amount MONEY,
+//         pay_type_amount MONEY,
+//         pay_type_id INT,
+//         debt_bus_id INT,
+//         ci_bus_id INT,
+//         ci_id INT,
+//         card_id INT,
+//         ci_name NVARCHAR(255),
+//         card_type_id INT,
+//         id INT,
+//         serv_type INT,
+//         deal_time DATETIME,
+//         user_id INT,
+//         username NVARCHAR(255),
+//         description NVARCHAR(1000),
+//         card_name NVARCHAR(1000),
+//         custom_order_sn NVARCHAR(255),
+//         lr_id INT,
+//         flow_category NVARCHAR(255),
+//         is_real_user BIT,
+//         bus_name NVARCHAR(255),
+//     )
+// END
+
+// bus_id	"11536"
+// flow_type	"收入"
+// flow_sn	"24061822O00067"
+// remark	""
+// serv_id	"249286839774806016"
+// operate_type	"票务"
+// amount	"10.00"
+// pre_payment	"0.00"
+// income_amount	"10.00"
+// pay_type_amount	"10.00"
+// pay_type_id	"19"
+// debt_bus_id	null
+// ci_bus_id	null
+// ci_id	null
+// card_id	null
+// ci_name	""
+// card_type_id	null
+// id	"29492904"
+// serv_type	"7"
+// deal_time	"2024-06-18 21:36"
+// user_id	"-1"
+// username	"散客"
+// description	"散客入场10元"
+// card_name	"散客入场10元"
+// custom_order_sn	""
+// lr_id	""
+// flow_category	"会籍合同"
+// is_real_user	false
+// marketers_detail	[]
+// pay_detail	[ {…} ]
+// bus_name	"健豪运动"
+
+// IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'rocketBird')
+// BEGIN
+//     CREATE DATABASE rocketBird
+// END
