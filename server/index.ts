@@ -43,6 +43,7 @@ app.post('/saveData',async(request,response) => {
     //console.log('request----',request);
     const {type="mssql",query="select * from p_Room"} = request.body;
     
+    //console.log(type,query)
     try {
         if(type==="mssql"){
             const result = await db.mssqlExcute(query)
