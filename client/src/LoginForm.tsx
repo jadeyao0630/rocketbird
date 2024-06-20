@@ -126,7 +126,210 @@ const LoginForm: React.FC = () => {
     }
   }
   const handleSync = async () => {
-
+    var parma={
+        bus_id:bus_id,
+        begin_date:begin_date,
+        end_date:end_date,
+        page_no:"1",
+        page_size:"1",
+        flow_type:"",
+        pay_type:"",
+        search:"",
+        sale_id:"",
+        operate_type:""
+    }
+    const response = await axios.post('http://localhost:3001/api/salesList', {parma}, { withCredentials: true });
+    parma['page_size']=response.data.results.count
+    const _response = await axios.post('http://localhost:3001/api/salesList', {parma}, { withCredentials: true });
+    const list:Array<any>=_response.data.results.list as []
+    var manualSignIn:Array<any>=[]
+    var _response_recv:Array<any>=[]
+    var salesA=0
+    var receivedAmount=0
+    var queries:Array<string>=[]
+    list.forEach(async(item:MyObject) => {
+      var _key:Array<string>=[]
+      var _source_key:Array<string>=[]
+      var _val:Array<string>=[]
+      var _key_val:Array<string>=[]
+      var _id_p=0;
+      var _key_p:Array<string>=[]
+      var _source_key_p:Array<string>=[]
+      var _val_p:Array<string>=[]
+      var _key_val_p:Array<string>=[]
+      var _id_m=0;
+      var _key_m:Array<string>=[]
+      var _source_key_m:Array<string>=[]
+      var _val_m:Array<string>=[]
+      var _key_val_m:Array<string>=[]
+      Object.keys(item).forEach(key=>{
+          if(key==="pay_detail"){
+              if(item[key]!=="[]"){
+                  const pd=item[key] as [];
+                  pd.forEach(_pd=>{
+                      _key_p.push("id");
+                      _source_key_p.push("Source.id");
+                      _val_p.push(_id_p.toString())
+                      _key_val_p.push(`Target.id = Source.id`)
+                      _id_p++;
+                      _key_p.push("flow_sn");
+                      _source_key_p.push("Source.flow_sn");
+                      _val_p.push("'"+item["flow_sn"]+"'")
+                      _key_val_p.push(`Target.flow_sn = Source.flow_sn`)
+                      Object.keys(_pd).forEach(_key=>{
+                          _key_p.push(_key);
+                          _source_key_p.push("Source."+_key);
+                          _val_p.push(_pd[_key]===null?"NULL":"N'"+_pd[_key]+"'")
+                          _key_val_p.push(`Target.${_key} = Source.${_key}`)
+                      });
+                  })
+              }
+          }else if(key==="marketers_detail"){
+              console.log(item[key]);
+              if(item[key]!=="[]"){
+                  const pd=item[key] as [];
+                  pd.forEach(_pd=>{
+                      _key_m.push("id");
+                      _source_key_m.push("Source.id");
+                      _val_m.push(_id_m.toString())
+                      _key_val_m.push(`Target.id = Source.id`)
+                      _id_m++;
+                      _key_m.push("flow_sn");
+                      _source_key_m.push("Source.flow_sn");
+                      _val_m.push("'"+item["flow_sn"]+"'")
+                      _key_val_m.push(`Target.flow_sn = Source.flow_sn`)
+                      Object.keys(_pd).forEach(_key=>{
+                          _key_m.push(_key==="percent"?"["+_key+"]":_key);
+                          _source_key_m.push("Source.["+_key+"]");
+                          _val_m.push(_pd[_key]===null?"NULL":"N'"+_pd[_key]+"'")
+                          _key_val_m.push(`Target.[${_key}] = Source.[${_key}]`)
+                      });
+                  })
+              }
+          }
+          else{
+              _key.push(key);
+              _source_key.push("Source."+key);
+              _val.push(item[key]===null?"NULL":"N'"+item[key]+"'")
+              _key_val.push(`Target.${key} = Source.${key}`)
+          }
+          
+      })
+      var query=`MERGE INTO FinancialFlow AS Target
+      USING (VALUES (${_val.join()})) AS Source (${_key.join()})
+      ON Target.flow_sn = Source.flow_sn
+      WHEN MATCHED THEN
+          UPDATE SET ${_key_val.join()}
+      WHEN NOT MATCHED THEN
+          INSERT (${_key.join()})
+          VALUES (${_source_key.join()});
+      MERGE INTO pay_detail AS Target
+      USING (VALUES (${_val_p.join()})) AS Source (${_key_p.join()})
+      ON Target.flow_sn = Source.flow_sn AND Target.id = Source.id
+      WHEN MATCHED THEN
+          UPDATE SET ${_key_val_p.join()}
+      WHEN NOT MATCHED THEN
+          INSERT (${_key_p.join()})
+          VALUES (${_source_key_p.join()});
+      ${_val_m.length>0?`MERGE INTO marketers_detail AS Target
+      USING (VALUES (${_val_m.join()})) AS Source (${_key_m.join()})
+      ON Target.flow_sn = Source.flow_sn AND Target.id = Source.id
+      WHEN MATCHED THEN
+          UPDATE SET ${_key_val_m.join()}
+      WHEN NOT MATCHED THEN
+          INSERT (${_key_m.join()})
+          VALUES (${_source_key_m.join()});`:""}`
+      queries.push(query)
+    });
+    var parma_recv={
+        search:'',
+        begin_date:begin_date,
+        end_date:end_date,
+        page_no:'1',
+        page_size:'0',
+        type:'',
+        pay_type:'',
+        pay_status:'',
+        related:'',
+        bus_id:bus_id
+    }
+    const response_recv = await axios.post('http://localhost:3001/api/receivedList', {parma:parma_recv}, { withCredentials: true });
+    (response_recv.data.results.list as []).forEach(recved=>{
+        var _key:Array<string>=[]
+        var _source_key:Array<string>=[]
+        var _val:Array<string>=[]
+        var _key_val:Array<string>=[]
+        
+        
+        
+        var query_fn:Array<string>=[]
+        Object.keys(recved).forEach(key=>{
+            
+            
+            if(key==="deal_time" || key==="flow_sn"){
+                
+            }else{
+                
+                _key.push(key);
+                _source_key.push("Source."+key);
+                _val.push(recved[key]===null?"NULL":"N'"+recved[key]+"'")
+                _key_val.push(`Target.${key} = Source.${key}`)
+                
+            }
+        });
+        var _id=0;
+        ((recved["flow_sn"] as string).split(',')).forEach(fsn=>{
+            var _key_fn:Array<string>=[]
+            var _source_key_fn:Array<string>=[]
+            var _val_fn:Array<string>=[]
+            var _key_val_fn:Array<string>=[]
+            _key_fn.push("id");
+            _source_key_fn.push("Source.id");
+            _val_fn.push(_id.toString())
+            _key_val_fn.push(`Target.id = Source.id`)
+            _key_fn.push("serial_number");
+            _source_key_fn.push("Source.serial_number");
+            _val_fn.push("'"+recved["serial_number"]+"'")
+            _key_val_fn.push(`Target.serial_number = Source.serial_number`)
+            _key_fn.push("flow_sn");
+            _source_key_fn.push("Source.flow_sn");
+            _val_fn.push("'"+fsn.toString()+"'")
+            _key_val_fn.push(`Target.flow_sn = Source.flow_sn`)
+            _key_fn.push("deal_time");
+            _source_key_fn.push("Source.deal_time");
+            _val_fn.push("'"+(recved["deal_time"] as[])[_id]+"'")
+            _key_val_fn.push(`Target.deal_time = Source.deal_time`)
+            var q=`MERGE INTO ReceiveLinked AS Target
+                    USING (VALUES (${_val_fn.join()})) AS Source (${_key_fn.join()})
+                    ON Target.serial_number = Source.serial_number and Target.id = Source.id
+                    WHEN MATCHED THEN
+                        UPDATE SET ${_key_val_fn.join()}
+                    WHEN NOT MATCHED THEN
+                        INSERT (${_key_fn.join()})
+                        VALUES (${_source_key_fn.join()});`
+            query_fn.push(q)
+            _id++;
+        })
+        var query=`MERGE INTO ReceiveLogList AS Target
+        USING (VALUES (${_val.join()})) AS Source (${_key.join()})
+        ON Target.serial_number = Source.serial_number
+        WHEN MATCHED THEN
+            UPDATE SET ${_key_val.join()}
+        WHEN NOT MATCHED THEN
+            INSERT (${_key.join()})
+            VALUES (${_source_key.join()});
+        `
+        
+        queries.push(query)
+        queries.push(...query_fn)
+      })
+      //console.log(queries)
+      
+        queries.forEach(async(query)=>{
+            console.log(query);
+            const response_upsert_ = await axios.post('http://localhost:3001/saveData', {type:"mssql",query:query}, { withCredentials: true });
+            console.log(response_upsert_);
+        })
   }
   const handleSales = async () => {
     var parma={
@@ -388,10 +591,10 @@ const LoginForm: React.FC = () => {
         if(count.length===_response_recv.length){
             clearInterval(intervalId);
             //console.log(queries.join(""));
-            queries.forEach(async(query)=>{
-                const response_upsert_ = await axios.post('http://localhost:3001/saveData', {type:"mssql",query:query}, { withCredentials: true });
-                console.log(response_upsert_);
-            })
+            // queries.forEach(async(query)=>{
+            //     const response_upsert_ = await axios.post('http://localhost:3001/saveData', {type:"mssql",query:query}, { withCredentials: true });
+            //     console.log(response_upsert_);
+            // })
             
             setResults(list.sort((a:MyObject, b:MyObject) => {
                 const dateA = new Date(a.deal_time).getTime();
