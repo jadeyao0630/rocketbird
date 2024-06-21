@@ -142,10 +142,6 @@ const LoginForm: React.FC = () => {
     parma['page_size']=response.data.results.count
     const _response = await axios.post('http://localhost:3001/api/salesList', {parma}, { withCredentials: true });
     const list:Array<any>=_response.data.results.list as []
-    var manualSignIn:Array<any>=[]
-    var _response_recv:Array<any>=[]
-    var salesA=0
-    var receivedAmount=0
     var queries:Array<string>=[]
     list.forEach(async(item:MyObject) => {
       var _key:Array<string>=[]
@@ -185,7 +181,7 @@ const LoginForm: React.FC = () => {
                   })
               }
           }else if(key==="marketers_detail"){
-              console.log(item[key]);
+              //console.log(item[key]);
               if(item[key]!=="[]"){
                   const pd=item[key] as [];
                   pd.forEach(_pd=>{
@@ -324,12 +320,56 @@ const LoginForm: React.FC = () => {
         queries.push(...query_fn)
       })
       //console.log(queries)
-      
-        queries.forEach(async(query)=>{
-            console.log(query);
-            const response_upsert_ = await axios.post('http://localhost:3001/saveData', {type:"mssql",query:query}, { withCredentials: true });
-            console.log(response_upsert_);
+      var parma_login={
+        s_date:begin_date,
+        e_date:end_date,
+        search:'',
+        number:'',
+        class_id:0,
+        card_id:0,
+        page_size:0,
+        page_no:1
+    }
+      const response_login = await axios.post('http://localhost:3001/api/signInLogs', {parma:parma_login}, { withCredentials: true });
+      parma_login['page_size']=response_login.data.results.count
+      const _response_login = await axios.post('http://localhost:3001/api/signInLogs', {parma:parma_login}, { withCredentials: true });
+        //console.log(_response_login)
+      //var _manualSignIn=0
+      _response_login.data.results.sign_log_list.forEach((item:MyObject)=>{
+        var _key:Array<string>=[]
+        var _source_key:Array<string>=[]
+        var _val:Array<string>=[]
+        var _key_val:Array<string>=[]
+        Object.keys(item).forEach(key=>{
+            if(key==="brand_number_arr" || key==="remind"){
+                    
+            }else{
+                _key.push(key);
+                _source_key.push("Source."+key);
+                if(key==="create_time"){
+                    _val.push(item[key]===null?"NULL":"N'"+convertTimestampToChinaTime(item['create_time'])+"'")
+                }else
+                    _val.push(item[key]===null?"NULL":"N'"+item[key]+"'")
+                _key_val.push(`Target.${key} = Source.${key}`)
+            }
         })
+        var query=`MERGE INTO pc_sign_log AS Target
+        USING (VALUES (${_val.join()})) AS Source (${_key.join()})
+        ON Target.id = Source.id
+        WHEN MATCHED THEN
+            UPDATE SET ${_key_val.join()}
+        WHEN NOT MATCHED THEN
+            INSERT (${_key.join()})
+            VALUES (${_source_key.join()});
+        `
+        
+        queries.push(query)
+      })
+      queries.forEach(async(query)=>{
+        //console.log(query);
+        const response_upsert_ = await axios.post('http://localhost:3001/saveData', {type:"mssql",query:query}, { withCredentials: true });
+        console.log(response_upsert_);
+      })
   }
   const handleSales = async () => {
     var parma={
@@ -790,6 +830,77 @@ export default LoginForm;
 // page_size	"10"
 // page_no	"1"
 
+
+
+
+
+// bus_id	"11536"
+// flow_type	"收入"
+// flow_sn	"24061822O00067"
+// remark	""
+// serv_id	"249286839774806016"
+// operate_type	"票务"
+// amount	"10.00"
+// pre_payment	"0.00"
+// income_amount	"10.00"
+// pay_type_amount	"10.00"
+// pay_type_id	"19"
+// debt_bus_id	null
+// ci_bus_id	null
+// ci_id	null
+// card_id	null
+// ci_name	""
+// card_type_id	null
+// id	"29492904"
+// serv_type	"7"
+// deal_time	"2024-06-18 21:36"
+// user_id	"-1"
+// username	"散客"
+// description	"散客入场10元"
+// card_name	"散客入场10元"
+// custom_order_sn	""
+// lr_id	""
+// flow_category	"会籍合同"
+// is_real_user	false
+// marketers_detail	[]
+// pay_detail	[ {…} ]
+// bus_name	"健豪运动"
+
+// IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'rocketBird')
+// BEGIN
+//     CREATE DATABASE rocketBird
+// END
+
+// IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='ReceiveLogList' AND xtype='U')
+// BEGIN
+//     CREATE TABLE ReceiveLogList (
+//         serial_number NVARCHAR(255) PRIMARY KEY,
+//         create_time DATETIME,
+//         amount MONEY,
+//         pay_type INT,
+//         id INT,
+//         type INT,
+//         is_online BIT,
+//         username NVARCHAR(1000),
+//         user_id INT,
+//         order_no NVARCHAR(1000),
+//         pay_type_name NVARCHAR(255),
+//         bus_id INT,
+//         bus_name NVARCHAR(255),
+//         is_real_user BIT,
+//     )
+// END
+// IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='ReceiveLinked' AND xtype='U')
+// BEGIN
+//     CREATE TABLE ReceiveLinked (
+//         serial_number NVARCHAR(255),
+//         id INT,
+//         deal_time DATETIME,
+//         flow_sn NVARCHAR(1000),
+//         PRIMARY KEY (serial_number, id)
+//     )
+// END
+
 // IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='FinancialFlow' AND xtype='U')
 // BEGIN
 //     CREATE TABLE FinancialFlow (
@@ -808,41 +919,6 @@ export default LoginForm;
 //         ci_bus_id VARCHAR(50) NULL,
 //         ci_id VARCHAR(50) NULL,
 //         card_id VARCHAR(50) NULL,
-//         ci_name NVARCHAR(255),
-//         card_type_id INT,
-//         id INT,
-//         serv_type INT,
-//         deal_time DATETIME,
-//         user_id INT,
-//         username NVARCHAR(255),
-//         description NVARCHAR(1000),
-//         card_name NVARCHAR(1000),
-//         custom_order_sn NVARCHAR(255),
-//         lr_id INT,
-//         flow_category NVARCHAR(255),
-//         is_real_user BIT,
-//         bus_name NVARCHAR(255),
-//     )
-// END
-
-// IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='pay_detail' AND xtype='U')
-// BEGIN
-//     CREATE TABLE pay_detail (
-//         bus_id INT,
-//         flow_type NVARCHAR(255),
-//         flow_sn INT PRIMARY KEY,
-//         remark NVARCHAR(1000),
-//         serv_id INT,
-//         operate_type NVARCHAR(255),
-//         amount MONEY,
-//         pre_payment MONEY,
-//         income_amount MONEY,
-//         pay_type_amount MONEY,
-//         pay_type_id INT,
-//         debt_bus_id INT,
-//         ci_bus_id INT,
-//         ci_id INT,
-//         card_id INT,
 //         ci_name NVARCHAR(255),
 //         card_type_id INT,
 //         id INT,
@@ -884,39 +960,52 @@ export default LoginForm;
 //     )
 // END
 
-// bus_id	"11536"
-// flow_type	"收入"
-// flow_sn	"24061822O00067"
-// remark	""
-// serv_id	"249286839774806016"
-// operate_type	"票务"
-// amount	"10.00"
-// pre_payment	"0.00"
-// income_amount	"10.00"
-// pay_type_amount	"10.00"
-// pay_type_id	"19"
-// debt_bus_id	null
-// ci_bus_id	null
-// ci_id	null
-// card_id	null
-// ci_name	""
-// card_type_id	null
-// id	"29492904"
-// serv_type	"7"
-// deal_time	"2024-06-18 21:36"
-// user_id	"-1"
-// username	"散客"
-// description	"散客入场10元"
-// card_name	"散客入场10元"
-// custom_order_sn	""
-// lr_id	""
-// flow_category	"会籍合同"
-// is_real_user	false
-// marketers_detail	[]
-// pay_detail	[ {…} ]
-// bus_name	"健豪运动"
-
-// IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'rocketBird')
+// IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='pc_sign_log' AND xtype='U')
 // BEGIN
-//     CREATE DATABASE rocketBird
+//     CREATE TABLE pc_sign_log (
+//         id	INT PRIMARY KEY,
+//         bus_id	NVARCHAR(255),
+//         user_id	NVARCHAR(255),
+//         marketers_id INT,
+//         card_name NVARCHAR(255),
+//         card_user_id NVARCHAR(255),
+//         card_type INT,
+//         sign_number INT,
+//         type INT,
+//         status BIT,
+//         brand_number NVARCHAR(255),
+//         add_time NVARCHAR(255),
+//         return_brand_number	NVARCHAR(255),
+//         return_time	NVARCHAR(255),
+//         class_id INT,
+//         class_category INT,
+//         class_mark_id INT,
+//         class_user_id INT,
+//         coach_id INT,
+//         coach_name NVARCHAR(255),
+//         consumption_form INT,
+//         consumption_form_balance MONEY,
+//         create_time	NVARCHAR(255),
+//         end_train BIT,
+//         end_time NVARCHAR(255),
+//         end_type INT,
+//         is_miss	BIT,
+//         miss_status	INT,
+//         old_user_id	NVARCHAR(255),
+//         is_import BIT,
+//         phone NVARCHAR(255),
+//         nickname NVARCHAR(255),
+//         username NVARCHAR(255),
+//         avatar	NVARCHAR(1000),
+//         sex	INT,
+//         RFID_id	NVARCHAR(1000),
+//         add_way	INT,
+//         card_sn	NVARCHAR(1000),
+//         class_name NVARCHAR(1000),
+//         card_type_id INT,
+//         is_pt_time_limit_card BIT,
+//         order_sn NVARCHAR(1000),
+//         brand_number_count INT,
+//         consumption NVARCHAR(1000)
+//     )
 // END
